@@ -1,0 +1,20 @@
+service: test
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: 'us-west-1'
+
+functions:
+  createAuction:
+    handler: app/src/handlers/create-auction-handler.createAuction
+    events:
+      - http:
+          path: /create/auction
+          method: POST
+
+plugins:
+  - serverless-offline

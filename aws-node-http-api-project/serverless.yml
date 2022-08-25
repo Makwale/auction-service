@@ -1,0 +1,63 @@
+service: aws-node-http-api-project
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  memorySize: 256
+  environment:
+    AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name}
+  stage: ${opt:stage, 'dev'}
+  region: 'us-west-1'
+  iamRoleStatements:
+    - ${file(iam/AuctionsIAM.yml):AuctionsTableIAM}
+resources:
+  Resources:
+    AuctionsTable: ${file(resources/AuctionsDB.yml):AuctionsTable}
+    UsersTable: ${file(resources/AuctionsDB.yml):UsersTable}
+
+functions:
+  createAuction:
+    handler: ./app/src/handlers/create-auction-handler.createAuction
+    events:
+      - httpApi:
+          path: /create/auction
+          method: POST
+  getAuctions:
+    handler: ./app/src/handlers/get-auctions-handler.getAuctions
+    events:
+      - httpApi:
+          path: /auctions
+          method: GET
+  getAuction:
+    handler: ./app/src/handlers/get-auction-handler.getAuction
+    events:
+      - httpApi:
+          path: /auctions/{id}
+          method: GET
+  processAuction:
+    handler: ./app/src/handlers/process-auction-handler.processAuction
+    events:
+      - schedule: rate(1 minute)
+  placeBid:
+    handler: ./app/src/handlers/place-bid-handler.placeBid
+    events:
+      - http:
+          path: /auctions/{id}/bid
+          method: PATCH
+
+plugins:
+  - serverless-bundle
+  - serverless-offline
+
+custom:
+  AuctionsTable: 
+    name: !Ref AuctionsTable
+    arn: !GetAtt AuctionsTable.Arn
+  UsersTable:
+    name: !Ref UsersTable
+    arn: !GetAtt UsersTable.Arn
+  # webpack:
+    # webpackConfig: webpack.config.js # Name of webpack configuration file
+    # includeModules: false # Node modules configuration for packaging
+    # packager: 'npm' # Packager that will be used to package your external modules
